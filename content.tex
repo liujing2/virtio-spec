@@ -1671,20 +1671,18 @@ All register values are organized as Little Endian.
     accesses apply to the queue selected by writing to \field{QueueSel}.
   }
   \hline 
-  \mmioreg{QueueNotify}{Queue notifier}{0x050}{W}{%
-    Writing a value to this register notifies the device that
-    there are new buffers to process in a queue.
+  \mmioreg{QueueNotify}{Queue notifier}{0x050}{RW}{%
+    When VIRTIO_F_MMIO_NOTIFICATION has not been negotiated, writing to this
+    register notifies the device that there are new buffers to process in a queue.
 
-    When VIRTIO_F_NOTIFICATION_DATA has not been negotiated,
-    the value written is the queue index.
+    When VIRTIO_F_MMIO_NOTIFICATION has been negotiated, reading this register
+    returns the virtqueue notification structure for calculating notification location.
 
-    When VIRTIO_F_NOTIFICATION_DATA has been negotiated,
-    the \field{Notification data} value has the following format:
+    See \ref{sec:Virtio Transport Options / Virtio Over MMIO / MMIO-specific Initialization And Device Operation / Notification Structure Layout}
+    for the notification structure format.
 
-    \lstinputlisting{notifications-le.c}
-
-    See \ref{sec:Virtqueues / Driver notifications}~\nameref{sec:Virtqueues / Driver notifications}
-    for the definition of the components.
+    See \ref{sec:Virtio Transport Options / Virtio Over MMIO / MMIO-specific Initialization And Device Operation / Available Buffer Notifications}
+    for the notification data format.
   }
   \hline 
   \mmioreg{InterruptStatus}{Interrupt status}{0x60}{R}{%
@@ -1858,6 +1856,31 @@ memory registers.
 Further initialization MUST follow the procedure described in
 \ref{sec:General Initialization And Device Operation / Device Initialization}~\nameref{sec:General Initialization And Device Operation / Device Initialization}.
 
+\subsubsection{Notification Structure Layout}\label{sec:Virtio Transport Options / Virtio Over MMIO / MMIO-specific Initialization And Device Operation / Notification Structure Layout}
+
+When VIRTIO_F_MMIO_NOTIFICATION has been negotiated, the notification location is calculated
+by notification structure. Driver reads \field{QueueNotify} to get this structure formatted
+as follows.
+
+\begin{lstlisting}
+le32 {
+        notify_base : 16;
+        notify_multiplier : 16;
+};
+\end{lstlisting}
+
+\field{notify_multiplier} is combined with virtqueue index to derive the Queue Notify address
+within a memory mapped control registers for a virtqueue:
+
+\begin{lstlisting}
+        notify_base + queue_index * notify_multiplier
+\end{lstlisting}
+
+\begin{note}
+For example, if notify_multiplier is 0, the device uses the same Queue Notify address for all
+queues.
+\end{note}
+
 \subsubsection{Virtqueue Configuration}\label{sec:Virtio Transport Options / Virtio Over MMIO / MMIO-specific Initialization And Device Operation / Virtqueue Configuration}
 
 The driver will typically initialize the virtual queue in the following way:
@@ -1893,15 +1916,19 @@ The driver will typically initialize the virtual queue in the following way:
 When VIRTIO_F_NOTIFICATION_DATA has not been negotiated,
 the driver sends an available buffer notification to the device by writing
 the 16-bit virtqueue index
-of the queue to be notified to \field{QueueNotify}.
+of the queue to be notified to Queue Notify address.
 
 When VIRTIO_F_NOTIFICATION_DATA has been negotiated,
 the driver sends an available buffer notification to the device by writing
-the following 32-bit value to \field{QueueNotify}:
+the following 32-bit value to Queue Notify address:
 \lstinputlisting{notifications-le.c}
 
 See \ref{sec:Virtqueues / Driver notifications}~\nameref{sec:Virtqueues / Driver notifications}
 for the definition of the components.
+
+For device not offering VIRTIO_F_MMIO_NOTIFICATION, the Queue Notify address is \field{QueueNotify}.
+For device offering VIRTIO_F_MMIO_NOTIFICATION, see \ref{sec:Virtio Transport Options / Virtio Over MMIO / MMIO-specific Initialization And Device Operation / Notification Structure Layout}
+for how to calculate the Queue Notify address.
 
 \subsubsection{Notifications From The Device}\label{sec:Virtio Transport Options / Virtio Over MMIO / MMIO-specific Initialization And Device Operation / Notifications From The Device}
 
