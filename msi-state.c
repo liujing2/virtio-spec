@@ -1,4 +1,5 @@
 le32 {
     msi_enabled : 1;
-    reserved : 31;
+    msi_sharing: 1;
+    reserved : 30;
 };
