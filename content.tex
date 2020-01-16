@@ -5840,6 +5840,9 @@ Descriptors} and \ref{sec:Packed Virtqueues / Indirect Flag: Scatter-Gather Supp
   \item[VIRTIO_F_MMIO_NOTIFICATION(39)] This feature indicates
   that the device supports enhanced notification mechanism on
   MMIO transport layer.
+  \item[VIRTIO_F_MMIO_MSI(40)] This feature indicates that the
+  device supports Message Signal Interrupts (MSI) mechanism on
+  MMIO transport layer.
 
 \drivernormative{\section}{Reserved Feature Bits}{Reserved Feature Bits}
 
@@ -5874,6 +5877,10 @@ or partially reset, and even without re-negotiating
 VIRTIO_F_SR_IOV after the reset.
 
 A driver SHOULD accept VIRTIO_F_MMIO_NOTIFICATION if it is offered.
+
+A driver SHOULD accept VIRTIO_F_MMIO_MSI if it is offered.
+If VIRTIO_F_MMIO_MSI has been negotiated, a driver MUST try to
+set up MSI at first priority.
 
 \devicenormative{\section}{Reserved Feature Bits}{Reserved Feature Bits}
 
